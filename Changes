@@ -1,0 +1,6 @@
+Revision history for Plack::Middleware::PrettyException
+
+0.900   to-be-released
+    - implemented streamed response / response_cb
+    - extracted from Validad::Tools
+
