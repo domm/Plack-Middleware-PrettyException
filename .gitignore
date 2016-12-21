@@ -1,2 +1,4 @@
+.build
 local
 cpanfile.snapshot
+Plack-Middleware-PrettyException-*
