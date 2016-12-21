@@ -65,19 +65,20 @@ sub call {
         my $orig_headers = HTTP::Headers->new(@{$r->[1]});
         my $err_headers = Plack::Util::headers([]);
         my $err_body;
-        if ( # do we want JSON?
-            (   exists $env->{HTTP_X_REQUESTED_WITH}
-                && $env->{HTTP_X_REQUESTED_WITH} eq 'XMLHttpRequest'
-            )
-            || ( exists $env->{HTTP_ACCEPT}
-                && $env->{HTTP_ACCEPT} =~ m{application/json}i )
+
+        # it already is JSON, so return that
+        if ( $orig_headers->content_type =~ m{application/json}i ) {
+            return;
+        }
+        # client requested JSON, so render errors as JSON
+        elsif (
+            exists $env->{HTTP_ACCEPT}
+                && $env->{HTTP_ACCEPT} =~ m{application/json}i
             ) {
-            if ( $orig_headers->content_type =~ m{application/json}i ) {
-                return; # it seems that the original request already has a json payload, so return that
-            }
             $err_headers->set('content-type'=>'application/json');
             $err_body = encode_json( { status => 'error', message => "" . $error } );
         }
+        # return HTML as default
         else {
             $err_headers->set('content-type'=>'text/html;charset=utf-8');
             $err_body = $self->render_html_error( $r->[0], $error );
