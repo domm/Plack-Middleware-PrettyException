@@ -108,5 +108,31 @@ UGLYERROR
 
 1;
 
+=head1 SYNOPSIS
 
+TODO
+
+=head1 DESCRIPTION
+
+TODO
+
+=head2 Finetune HTML output via subclassing
+
+TODO
+
+=head1 THANKS
+
+Thanks to
+
+=over
+
+=item *
+
+L<validad.com|https://www.validad.com/> for supporting Open Source.
+
+=item *
+
+L<oe1.orf.at|http://oe1.orf.at> for the motivation to extract the code from the Validad stack.
+
+=back
 
