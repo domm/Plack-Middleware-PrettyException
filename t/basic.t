@@ -6,6 +6,43 @@ use HTTP::Request::Common;
 use Plack::Test;
 use Plack::Builder;
 
+# Some exception classes to play with
+package Base::X;
+sub message     { shift->{message} }
+sub http_status { shift->{status} }
+
+package My::X;
+use base qw(Base::X);
+
+sub new {
+    my ( $class, $args ) = @_;
+    $args->{status} ||= 500;
+    bless $args, $class;
+}
+
+sub throw {
+    my $class = shift;
+    die $class->new(@_);
+}
+
+package My::X::418;
+use base qw(My::X);
+
+sub new {
+    my ( $class, $args ) = @_;
+    $args->{status}  ||= 418;
+    $args->{message} ||= 'teapot';
+    bless $args, $class;
+}
+
+package Your::X;
+use base qw(Base::X);
+
+
+# The fake we use for testing
+package main;
+use HTTP::Throwable::Factory qw(http_throw);
+
 my $handler = builder {
     enable "Plack::Middleware::PrettyException";
 
@@ -32,11 +69,29 @@ my $handler = builder {
         elsif ( $path eq '/die' ) {
             die 'argh!';
         }
-        elsif ( $path eq '/exception' ) {
-
+        elsif ( $path eq '/exception/default' ) {
+            My::X->throw( { message => 'default X' } );
         }
+        elsif ( $path eq '/exception/418' ) {
+            My::X::418->throw;
+        }
+        elsif ( $path eq '/exception/not-a-teapot' ) {
+            My::X::418->throw( { status => 406 } );
+        }
+        elsif ( $path eq '/exception/strange-x' ) {
+            my $x = bless {}, 'Your::X';
+            die $x;
+        }
+        elsif ( $path eq '/exception/http-throwable' ) {
+            http_throw(
+                NotAcceptable => { message => 'You have to be kidding me!' }
+            );
+        }
+
     };
 };
+
+# and finally the tests!
 
 test_psgi
     app    => $handler,
@@ -70,11 +125,7 @@ test_psgi
             is( $res->code, 400, 'status' );
             is( $res->header('Content-Type'),
                 'application/json', 'content-type' );
-            like(
-                $res->content,
-                qr/"message":"there was an error"/,
-                'json'
-            );
+            like( $res->content, qr/"message":"there was an error"/, 'json' );
         };
 
         subtest 'app returned jsonerror' => sub {
@@ -82,9 +133,7 @@ test_psgi
             is( $res->code, 400, 'status' );
             is( $res->header('Content-Type'),
                 'application/json', 'content-type' );
-            is( $res->content, '{"status":"jsonerror"}',
-                'json payload' );
-
+            is( $res->content, '{"status":"jsonerror"}', 'json payload' );
         };
 
         subtest 'app returned jsonerror, client requested json' => sub {
@@ -93,23 +142,80 @@ test_psgi
                 'Accept' => 'application/json'
             );
             is( $res->code, 400, 'status' );
-            is( $res->header('Content-Type'), 'application/json', 'content-type' );
+            is( $res->header('Content-Type'),
+                'application/json', 'content-type' );
             is( $res->content, '{"status":"jsonerror"}', 'json payload' );
         };
+
         subtest 'app died' => sub {
             my $res = $cb->( GET "http://localhost/die" );
-
             is( $res->code, 500, 'status' );
             like( $res->content, qr{<h1>Error 500</h1>}, 'heading' );
-            like( $res->content, qr{<p>argh! at }, 'error message' );
+            like( $res->content, qr{<p>argh! at },       'error message' );
         };
 
         subtest 'app died, client requested json' => sub {
-            my $res = $cb->( GET "http://localhost/die", 'Accept'=>'application/json' );
+            my $res = $cb->(
+                GET "http://localhost/die",
+                'Accept' => 'application/json'
+            );
             is( $res->code, 500, 'status' );
-            like( $res->content, qr/{"message":"argh! at/, 'json payload' );
+            like( $res->content, qr/"message":"argh! at/, 'json payload' );
+        };
+
+        subtest 'app threw exception' => sub {
+            my $res = $cb->( GET "http://localhost/exception/default" );
+            is( $res->code, 500, 'status' );
+            like( $res->content, qr{<h1>Error 500</h1>}, 'heading' );
+            like( $res->content, qr{<p>default X</p>},   'error message' );
+        };
+
+        subtest 'app threw exception, client requested json' => sub {
+            my $res = $cb->(
+                GET "http://localhost/exception/default",
+                'Accept' => 'application/json'
+            );
+            is( $res->code, 500, 'status' );
+            like( $res->content, qr/"message":"default X"/, 'json payload' );
+        };
+
+        subtest 'app threw exception 418' => sub {
+            my $res = $cb->( GET "http://localhost/exception/418" );
+            is( $res->code, 418, 'status' );
+            like( $res->content, qr{<h1>Error 418</h1>}, 'heading' );
+            like( $res->content, qr{<p>teapot</p>},      'error message' );
+        };
+
+        subtest 'app threw exception not-a-teapot' => sub {
+            my $res = $cb->( GET "http://localhost/exception/not-a-teapot" );
+            is( $res->code, 406, 'status' );
+            like( $res->content, qr{<h1>Error 406</h1>}, 'heading' );
+            like( $res->content, qr{<p>teapot</p>},      'error message' );
+        };
+
+        subtest 'app threw exception strange-x' => sub {
+            my $res = $cb->( GET "http://localhost/exception/strange-x" );
+            is( $res->code, 500, 'status' );
+            like( $res->content, qr{<h1>Error 500</h1>}, 'heading' );
+            like(
+                $res->content,
+                qr{<p>error not found in body</p>},
+                'error message'
+            );
+        };
+
+        subtest 'app threw exception http-throwable' => sub {
+            my $res =
+                $cb->( GET "http://localhost/exception/http-throwable" );
+            is( $res->code, 406, 'status' );
+            like( $res->content, qr{<h1>Error 406</h1>}, 'heading' );
+            like(
+                $res->content,
+                qr{<p>You have to be kidding me!</p>},
+                'error message'
+            );
         };
     }
-    };
+};
 
 done_testing;
