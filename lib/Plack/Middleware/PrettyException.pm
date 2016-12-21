@@ -37,6 +37,7 @@ sub call {
                 $error = '' . $e;
             }
             $r->[0] = $e->can('status_code') ? $e->status_code : $e->can('http_status') ? $e->http_status : 500;
+            $r->[0] ||= 500;
         }
         else {
             $r->[0] = 500;
