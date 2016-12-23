@@ -145,7 +145,7 @@ exception.
 
 So instead of capturing exceptions in your controller actions and
 converting them to proper error messages, you just let the exception
-propagate up to this middleware, which will then to the rendering.
+propagate up to this middleware, which will then do the rendering.
 This leads to much cleaner code in your controller, and to proper
 exception usage in your model.
 
