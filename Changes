@@ -1,6 +1,7 @@
 Revision history for Plack::Middleware::PrettyException
 
-0.900   to-be-released
+1.000   2016-12-23T12:12:58
+    - added tests & docs
     - implemented streamed response / response_cb
     - extracted from Validad::Tools
 
