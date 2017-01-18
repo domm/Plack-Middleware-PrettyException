@@ -1,5 +1,10 @@
 Revision history for Plack::Middleware::PrettyException
 
+1.001	2017-01-18T11:34:52
+    - add force_json, not as good as proper content detection, but good enough
+      for now (Thomas Klausner)
+
+
 1.000   2016-12-23T12:12:58
     - added tests & docs
     - implemented streamed response / response_cb
