@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use parent qw(Plack::Middleware);
 use Plack::Util;
-use Plack::Util::Accessor qw(error_root);
+use Plack::Util::Accessor qw(force_json);
 use HTTP::Headers;
 use JSON::MaybeXS qw(encode_json);
 use HTTP::Status qw(is_error);
@@ -36,7 +36,10 @@ sub call {
             else {
                 $error = '' . $e;
             }
-            $r->[0] = $e->can('status_code') ? $e->status_code : $e->can('http_status') ? $e->http_status : 500;
+            $r->[0] =
+                  $e->can('status_code') ? $e->status_code
+                : $e->can('http_status') ? $e->http_status
+                :                          500;
             $r->[0] ||= 500;
         }
         else {
@@ -45,56 +48,65 @@ sub call {
         }
     };
 
-    return Plack::Util::response_cb($r, sub {
-        my $r = shift;
+    return Plack::Util::response_cb(
+        $r,
+        sub {
+            my $r = shift;
 
-        if (!$died && !is_error($r->[0])) {
-            # all is ok!
+            if ( !$died && !is_error( $r->[0] ) ) {
+
+                # all is ok!
+                return;
+            }
+
+            # there was an error!
+
+            unless ($error) {
+                my $body = $r->[2] || 'error not found in body';
+                $error = ref($body) eq 'ARRAY' ? join( '', @$body ) : $body;
+            }
+
+            my $location = join( '',
+                map { $env->{$_} } qw(HTTP_HOST SCRIPT_NAME REQUEST_URI) );
+            $log->error( $location . ': ' . $error );
+
+            my $orig_headers = HTTP::Headers->new( @{ $r->[1] } );
+            my $err_headers = Plack::Util::headers( [] );
+            my $err_body;
+
+            # it already is JSON, so return that
+            if ( $orig_headers->content_type =~ m{application/json}i ) {
+                return;
+            }
+
+            # force json, or client requested JSON, so render errors as JSON
+            if ($self->force_json
+                || ( exists $env->{HTTP_ACCEPT}
+                    && $env->{HTTP_ACCEPT} =~ m{application/json}i )
+                ) {
+                $err_headers->set( 'content-type' => 'application/json' );
+                $err_body = encode_json(
+                    { status => 'error', message => "" . $error } );
+            }
+
+            # return HTML as default
+            else {
+                $err_headers->set(
+                    'content-type' => 'text/html;charset=utf-8' );
+                $err_body = $self->render_html_error( $r->[0], $error );
+            }
+            $r->[1] = $err_headers->headers;
+            $r->[2] = [$err_body];
             return;
         }
-
-        # there was an error!
-
-        unless ($error) {
-            my $body = $r->[2] || 'error not found in body';
-            $error = ref($body) eq 'ARRAY' ? join( '', @$body ) : $body;
-        }
-
-        my $location = join('', map { $env->{$_} } qw(HTTP_HOST SCRIPT_NAME REQUEST_URI));
-        $log->error( $location . ': ' . $error );
-
-        my $orig_headers = HTTP::Headers->new(@{$r->[1]});
-        my $err_headers = Plack::Util::headers([]);
-        my $err_body;
-
-        # it already is JSON, so return that
-        if ( $orig_headers->content_type =~ m{application/json}i ) {
-            return;
-        }
-        # client requested JSON, so render errors as JSON
-        elsif (
-            exists $env->{HTTP_ACCEPT}
-                && $env->{HTTP_ACCEPT} =~ m{application/json}i
-            ) {
-            $err_headers->set('content-type'=>'application/json');
-            $err_body = encode_json( { status => 'error', message => "" . $error } );
-        }
-        # return HTML as default
-        else {
-            $err_headers->set('content-type'=>'text/html;charset=utf-8');
-            $err_body = $self->render_html_error( $r->[0], $error );
-        }
-        $r->[1] = $err_headers->headers;
-        $r->[2] = [$err_body];
-        return;
-    });
+    );
 }
 
 sub render_html_error {
-    my ($self, $status, $error) = @_;
+    my ( $self, $status, $error ) = @_;
 
-    $status ||='unknown HTTP status code';
-    $error  ||='unknown error';
+    $status ||= 'unknown HTTP status code';
+    $error  ||= 'unknown error';
     return <<"UGLYERROR";
 <html>
   <head><title>Error $status</title></head>

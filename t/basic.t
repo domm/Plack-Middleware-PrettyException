@@ -38,57 +38,56 @@ sub new {
 package Your::X;
 use base qw(Base::X);
 
-
 # The fake we use for testing
 package main;
 use HTTP::Throwable::Factory qw(http_throw);
 
+my $app = sub {
+    my $env = shift;
+
+    my $path = $env->{PATH_INFO};
+    if ( $path eq '/ok' ) {
+        return [ 200, [ 'Content-Type' => 'text/plain' ], ['all ok'] ];
+    }
+    elsif ( $path eq '/error' ) {
+        return [
+            400, [ 'Content-Type' => 'text/plain' ],
+            ['there was an error']
+        ];
+    }
+    elsif ( $path eq '/jsonerror' ) {
+        return [
+            400,
+            [ 'Content-Type' => 'application/json' ],
+            ['{"status":"jsonerror"}']
+        ];
+    }
+    elsif ( $path eq '/die' ) {
+        die 'argh!';
+    }
+    elsif ( $path eq '/exception/default' ) {
+        My::X->throw( { message => 'default X' } );
+    }
+    elsif ( $path eq '/exception/418' ) {
+        My::X::418->throw;
+    }
+    elsif ( $path eq '/exception/not-a-teapot' ) {
+        My::X::418->throw( { status => 406 } );
+    }
+    elsif ( $path eq '/exception/strange-x' ) {
+        my $x = bless {}, 'Your::X';
+        die $x;
+    }
+    elsif ( $path eq '/exception/http-throwable' ) {
+        http_throw(
+            NotAcceptable => { message => 'You have to be kidding me!' } );
+    }
+
+};
+
 my $handler = builder {
     enable "Plack::Middleware::PrettyException";
-
-    sub {
-        my $env = shift;
-
-        my $path = $env->{PATH_INFO};
-        if ( $path eq '/ok' ) {
-            return [ 200, [ 'Content-Type' => 'text/plain' ], ['all ok'] ];
-        }
-        elsif ( $path eq '/error' ) {
-            return [
-                400, [ 'Content-Type' => 'text/plain' ],
-                ['there was an error']
-            ];
-        }
-        elsif ( $path eq '/jsonerror' ) {
-            return [
-                400,
-                [ 'Content-Type' => 'application/json' ],
-                ['{"status":"jsonerror"}']
-            ];
-        }
-        elsif ( $path eq '/die' ) {
-            die 'argh!';
-        }
-        elsif ( $path eq '/exception/default' ) {
-            My::X->throw( { message => 'default X' } );
-        }
-        elsif ( $path eq '/exception/418' ) {
-            My::X::418->throw;
-        }
-        elsif ( $path eq '/exception/not-a-teapot' ) {
-            My::X::418->throw( { status => 406 } );
-        }
-        elsif ( $path eq '/exception/strange-x' ) {
-            my $x = bless {}, 'Your::X';
-            die $x;
-        }
-        elsif ( $path eq '/exception/http-throwable' ) {
-            http_throw(
-                NotAcceptable => { message => 'You have to be kidding me!' }
-            );
-        }
-
-    };
+    $app
 };
 
 # and finally the tests!
@@ -216,6 +215,27 @@ test_psgi
             );
         };
     }
+    };
+
+# force_json
+my $handler2 = builder {
+    enable "Plack::Middleware::PrettyException" => ( force_json => 1 );
+    $app
 };
+test_psgi
+    app    => $handler2,
+    client => sub {
+    my $cb = shift;
+
+    {
+        subtest 'force_json' => sub {
+            my $res = $cb->( GET "http://localhost/error" );
+            is( $res->code, 400, 'status' );
+            is( $res->header('Content-Type'),
+                'application/json', 'content-type' );
+            like( $res->content, qr/"message":"there was an error"/, 'json' );
+        };
+    };
+    };
 
 done_testing;
