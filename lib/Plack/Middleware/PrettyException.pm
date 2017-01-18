@@ -252,6 +252,24 @@ If we want JSON, we just need to tell the server:
 
 Smooth!
 
+=head2 Content Negotiation / Force JSON
+
+As of now there is no real content-negotiation, because all I need is
+HTML and JSON. There is some semi-dumb checking of the
+C<Accept>-Header, but I only check for literal C<application/json>
+(while I should do the whole q-factor weighting dance).
+
+If you want to force all your errors to JSON, pass C<force_json => 1>
+when loading the middleware:
+
+  builder {
+      enable "Plack::Middleware::PrettyException" => ( force_json => 1 );
+      $app
+  };
+
+This will be replace in the near future by some proper content
+negitiation and a new C<default_response_encoding> field.
+
 =head2 Finetune HTML output via subclassing
 
 The default HTML is rather basic^wugly. To finetune this, just
