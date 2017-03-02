@@ -41,6 +41,12 @@ sub call {
                 : $e->can('http_status') ? $e->http_status
                 :                          500;
             $r->[0] ||= 500;
+
+            if ( $r->[0] =~ /^3/ && $e->can('location') ) {
+                push( @{ $r->[1] }, Location => $e->location );
+                push( @{ $r->[2] }, $e->location ) unless $r->[2];
+            }
+
         }
         else {
             $r->[0] = 500;
@@ -56,6 +62,11 @@ sub call {
             if ( !$died && !is_error( $r->[0] ) ) {
 
                 # all is ok!
+                return;
+            }
+            if ( $r->[0] =~ /^3/ ) {
+
+                # it's a redirect
                 return;
             }
 

@@ -35,6 +35,16 @@ sub new {
     bless $args, $class;
 }
 
+package My::X::307;
+use base qw(My::X);
+sub location { shift->{location} }
+
+sub new {
+    my ( $class, $args ) = @_;
+    $args->{status} ||= 307;
+    bless $args, $class;
+}
+
 package Your::X;
 use base qw(Base::X);
 
@@ -81,6 +91,12 @@ my $app = sub {
     elsif ( $path eq '/exception/http-throwable' ) {
         http_throw(
             NotAcceptable => { message => 'You have to be kidding me!' } );
+    }
+    elsif ( $path eq '/throw/307' ) {
+        My::X::307->throw( { location => '/ok' } );
+    }
+    elsif ( $path eq '/redirect/307' ) {
+        return [ 307, [ 'Location' => '/ok' ], ['red'] ];
     }
 
 };
@@ -213,6 +229,20 @@ test_psgi
                 qr{<p>You have to be kidding me!</p>},
                 'error message'
             );
+        };
+
+        subtest 'app threw redirect 307' => sub {
+            my $res = $cb->( GET "http://localhost/throw/307" );
+            is( $res->code,               307,   'status' );
+            is( $res->header('Location'), '/ok', 'Location header' );
+            is( $res->content,            '/ok', 'default content' );
+        };
+        subtest 'app return redirect 307' => sub {
+            my $res = $cb->( GET "http://localhost/redirect/307" );
+            is( $res->code,               307,   'status' );
+            is( $res->header('Location'), '/ok', 'Location header' );
+            is( $res->content,            'red', 'some http content' );
+
         };
     }
     };
