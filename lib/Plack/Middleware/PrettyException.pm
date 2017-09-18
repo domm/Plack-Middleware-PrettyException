@@ -99,13 +99,14 @@ sub call {
                 ) {
                 $err_headers->set( 'content-type' => 'application/json' );
                 my $err_payload = { status => 'error', message => "" . $error };
-                if ($exception) {
+                if ($exception && $exception->can('does')) {
                     if ($exception->does('Throwable::X')) {
-                    my $payload = $exception->payload;
-                    while (my ($k, $v) = each %$payload) {
-                        $err_payload->{$k} = $v;
+                        my $payload = $exception->payload;
+                        while (my ($k, $v) = each %$payload) {
+                            $err_payload->{$k} = $v;
+                        }
+                        $err_payload->{ident} = $exception->ident;
                     }
-                    $err_payload->{ident} = $exception->{ident};
                 }
 
                 $err_body = encode_json( $err_payload );
@@ -131,10 +132,10 @@ sub render_html_error {
     $error  ||= 'unknown error';
 
     my $more='';
-    if ($exception) {
+    if ($exception && $exception->can('does')) {
         my @more;
         if ($exception->does('Throwable::X')) {
-            push(@more, "<li>".$exception->{ident}."</li>");
+            push(@more, "<li>".$exception->ident."</li>");
             my $payload = $exception->payload;
             while (my ($k, $v) = each %$payload) {
                 push(@more,"<li>$k: $v</li>");
