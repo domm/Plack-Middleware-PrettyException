@@ -299,7 +299,7 @@ HTML and JSON. There is some semi-dumb checking of the
 C<Accept>-Header, but I only check for literal C<application/json>
 (while I should do the whole q-factor weighting dance).
 
-If you want to force all your errors to JSON, pass C<force_json => 1>
+If you want to force all your errors to JSON, pass C<force_json =E<gt> 1>
 when loading the middleware:
 
   builder {
