@@ -135,10 +135,10 @@ sub render_html_error {
     if ($exception && $exception->can('does')) {
         my @more;
         if ($exception->does('Throwable::X')) {
-            push(@more, "<li>".$exception->ident."</li>");
+            push(@more, "<li><strong>".$exception->ident."</strong></li>");
             my $payload = $exception->payload;
             while (my ($k, $v) = each %$payload) {
-                push(@more,"<li>$k: $v</li>");
+                push(@more,sprintf("<li>%s: %s</li>", $k, $v // ''));
             }
         }
         if (@more) {
