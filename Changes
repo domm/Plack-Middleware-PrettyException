@@ -1,4 +1,9 @@
 Revision history for Plack::Middleware::PrettyException
+all changes by Thomas Klausner unless noted otherwise
+
+1.005   2018-03-15T11:56:03
+    - remove a warning when rendering html
+
 
 1.004   2017-09-18T16:11:43
     - render exception object if it's a Throwable::X (Thomas Klausner)

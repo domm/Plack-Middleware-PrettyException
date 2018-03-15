@@ -2,7 +2,7 @@ package Plack::Middleware::PrettyException;
 
 # ABSTRACT: Capture exceptions and present them as HTML or JSON
 
-our $VERSION = '1.004';
+our $VERSION = '1.005';
 
 use 5.010;
 use strict;
