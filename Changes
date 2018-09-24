@@ -1,6 +1,10 @@
 Revision history for Plack::Middleware::PrettyException
 all changes by Thomas Klausner unless noted otherwise
 
+1.007   2018-09-24T13:39:17
+    - bumped version again, it seems that 1.006 was already released?
+
+
 1.006   2018-09-24T12:30:52
     - pass env to render_html_error
 
