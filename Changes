@@ -1,6 +1,10 @@
 Revision history for Plack::Middleware::PrettyException
 all changes by Thomas Klausner unless noted otherwise
 
+1.006   2018-09-24T12:30:52
+    - pass env to render_html_error
+
+
 1.005   2018-03-15T11:56:03
     - remove a warning when rendering html
 
