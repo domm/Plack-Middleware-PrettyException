@@ -80,7 +80,7 @@ sub call {
             }
 
             my $location = join( '',
-                map { $env->{$_} } qw(HTTP_HOST SCRIPT_NAME REQUEST_URI) );
+                map { $env->{$_} } qw(HTTP_HOST SCRIPT_NAME PATH_INFO) );
             $log->error( $location . ': ' . $error );
 
             my $orig_headers = HTTP::Headers->new( @{ $r->[1] } );
