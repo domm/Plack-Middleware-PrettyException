@@ -1,6 +1,10 @@
 Revision history for Plack::Middleware::PrettyException
 all changes by Thomas Klausner unless noted otherwise
 
+1.007   2019-07-22T23:32:27
+    - fix bad url reported when using --path (#2)
+
+
 1.006   2018-03-15T22:29:53
     - Fixed minor typo in the pod. (Mohammad S Anwar)
 
