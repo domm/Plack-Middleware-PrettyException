@@ -136,7 +136,7 @@ sub render_html_error {
         my @more;
         if ($exception->does('Throwable::X')) {
             push(@more, "<li><strong>".$exception->ident."</strong></li>");
-            push(@more, "<li><strong>".$exception->message."</strong></li>");
+            push(@more, "<li><strong>".($exception->message || 'unknown exception message')."</strong></li>");
             my $payload = $exception->payload;
             while (my ($k, $v) = each %$payload) {
                 push(@more,sprintf("<li>%s: %s</li>", $k, $v // ''));
