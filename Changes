@@ -1,6 +1,9 @@
 Revision history for Plack::Middleware::PrettyException
 all changes by Thomas Klausner unless noted otherwise
 
+{{$NEXT}}
+
+
 1.008   2019-07-22T23:32:27
     - fix bad url reported when using --path (#2)
 
