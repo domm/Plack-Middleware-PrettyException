@@ -139,7 +139,21 @@ sub render_html_error {
             push(@more, "<li><strong>".($exception->message || 'unknown exception message')."</strong></li>");
             my $payload = $exception->payload;
             while (my ($k, $v) = each %$payload) {
-                push(@more,sprintf("<li>%s: %s</li>", $k, $v // ''));
+                if (ref($v)) {
+                    if (ref($v) eq 'ARRAY') {
+                        push(@more,sprintf("<li>%s:<ul>", $k ));
+                        foreach my $sv (@$v) {
+                            push(@more,sprintf("<li>%s</li>", $sv ));
+                        }
+                        push(@more,sprintf("</ul></li>"));
+                    }
+                    else {
+                        push(@more,sprintf("<li>%s which is an unhandled ref of %s</li>", $k, ref($v)));
+                    }
+                }
+                else {
+                    push(@more,sprintf("<li>%s: %s</li>", $k, $v // ''));
+                }
             }
         }
         if (@more) {
