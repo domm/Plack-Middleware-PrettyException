@@ -2,6 +2,8 @@ Revision history for Plack::Middleware::PrettyException
 all changes by Thomas Klausner unless noted otherwise
 
 {{$NEXT}}
+
+1.010     2022-10-21 14:53:26+02:00
     - better handling of payloads of type Array (Thomas Klausner)
 
 
