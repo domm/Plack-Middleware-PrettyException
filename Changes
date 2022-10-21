@@ -2,6 +2,8 @@ Revision history for Plack::Middleware::PrettyException
 all changes by Thomas Klausner unless noted otherwise
 
 {{$NEXT}}
+    - better handling of payloads of type Array (Thomas Klausner)
+
 
 1.009     2021-01-03 17:50:56+01:00
     - dist housekeeping: github issues,
